@@ -74,5 +74,169 @@ rules:
       function: pattern
       functionOptions:
         notMatch: "{\\w*id}"
- 
+  
+  rule-oas3-request-support-json:
+    description: Every request MUST support `application/json` media type
+    formats:
+      - oas3
+    recommended: true
+    severity: error
+    message: "{{description}}: {{error}}"
+    given: $.paths.[*].requestBody.content[?(@property.indexOf('json') === -1)]^
+    then:
+      function: falsy
+
+  rule-paths-kebab-case:
+    description: All YAML/JSON paths MUST follow kebab-case
+    severity: warn
+    recommended: true
+    message: "{{property}} is not kebab-case: {{error}}"
+    given: $.paths[*]~
+    then:
+      function: pattern
+      functionOptions:
+        match: "^\/([a-z0-9]+(-[a-z0-9]+)*)?(\/[a-z0-9]+(-[a-z0-9]+)*|\/{.+})*$" # doesn't allow /asasd{asdas}sadas pattern or not closed braces
+
+  rule-path-parameters-camelCase-alphanumeric:
+    description: Path parameters MUST follow camelCase
+    severity: warn
+    recommended: true
+    message: "{{property}} path parameter is not camelCase: {{error}}"
+    given: $..parameters[?(@.in == 'path')].name
+    then:
+      function: pattern
+      functionOptions:
+        match: "^[a-z][a-zA-Z0-9]+$"
+
+  rule-definitions-camelCase-alphanumeric:
+    description: All YAML/JSON definitions MUST follow fields-camelCase and be ASCII alphanumeric characters or `_` or `$`.
+    severity: error
+    recommended: true
+    message: "{{property}} MUST follow camelCase and be ASCII alphanumeric characters or `_` or `$`."
+    given: $.definitions[*]~
+    then:
+      function: pattern
+      functionOptions:
+        match: "/^[a-z$_]{1}[A-Z09$_]*/"
+
+  rule-properties-camelCase-alphanumeric:
+    description: All JSON Schema properties MUST follow fields-camelCase and be ASCII alphanumeric characters or `_` or `$`.
+    severity: error
+    recommended: true
+    message: "{{property}} MUST follow camelCase and be ASCII alphanumeric characters or `_` or `$`."
+    given: $.definitions..properties[*]~
+    then:
+      function: pattern
+      functionOptions:
+        match: "/^[a-z$_]{1}[A-Z09$_]*/"
+
+  rule-request-GET-no-body:
+    description: "A 'GET' request MUST NOT accept a 'body` parameter"
+    severity: error
+    given: $.paths..get.parameters..in
+    then:
+      function: pattern
+      functionOptions:
+        notMatch: "/^body$/"
+
+  rule-headers-no-x-headers:
+    description: "All 'HTTP' headers SHOULD NOT include 'X-' headers (https://tools.ietf.org/html/rfc6648)."
+    severity: warn
+    given: "$..parameters[?(@.in == 'header')].name"
+    message: "HTTP headers SHOULD NOT include 'X-' prefix."
+    recommended: true
+    type: style
+    then: 
+      function: pattern
+      functionOptions:
+        notMatch: "/^(x|X)-/"
+
+  rule-headers-hyphenated-pascal-case:
+    description: All `HTTP` headers MUST use `Hyphenated-Pascal-Case` notation
+    severity: error
+    given: "$..parameters[?(@.in == 'header')].name"
+    message: "'HTTP' headers MUST follow 'Hyphenated-Pascal-Case' notation"
+    recommended: true
+    type: style
+    then: 
+      function: pattern
+      functionOptions:
+        match: "/^([A-Z][a-z0-9]-)*([A-Z][a-z0-9])+/"
+  
+  rule-common-responses-ok:
+    description: Responses should contain common response - 200 (ok)
+    message: '{{description}}. Missing {{property}}'
+    severity: error
+    given: $.paths..responses
+    then:
+      field: '200'
+      function: truthy
+
+  rule-common-responses-bad-request:
+    description: Responses should contain common response - 400 (bad request)
+    message: '{{description}}. Missing {{property}}'
+    severity: error
+    given: $.paths[?(@property.match(/.*\/{.*}.*/))]..responses
+    then:
+      field: '404'
+      function: truthy
+
+  rule-common-responses-not-found:
+    description: Responses should contain common response - 404 (not found)
+    message: '{{description}}. Missing {{property}}'
+    severity: error
+    given: $.paths[?(@property.match(/.*\/{.*}.*/))]..responses
+    then:
+      field: '404'
+      function: truthy
+
+  rule-common-responses-too-many-requests:
+    description: Responses should contain common response - 429 (too many requests)
+    message: '{{description}}. Missing {{property}}'
+    severity: error
+    given: $.paths..responses
+    then:
+      field: '429'
+      function: truthy
+
+  rule-common-responses-server-error:
+    description: Responses should contain common response - 500 (server error)
+    message: '{{description}}. Missing {{property}}'
+    severity: error
+    given: $.paths..responses
+    then:
+      field: '500'
+      function: truthy
+
+  rule-property-description:
+    description: All schema properties should have a description.
+    message: Property should have a description.
+    severity: warn
+    resolved: false
+    given: $..properties[?(@object() && @.$ref == undefined)]
+    then:
+      field: description
+      function: defined
+
+  rule-property-type:
+    description: All schema properties should have a defined type.
+    message: Property should have a defined type.
+    severity: warn
+    resolved: false
+    # Exclude properties that contains allOf or oneOf or anyOf to avoid false positives.
+    given: $..properties[?(@object() && @.$ref == undefined && @.allOf == undefined && @.oneOf == undefined && @.anyOf == undefined)]
+    then:
+      field: type
+      function: truthy
+
+  rule-property-example:
+    description: All schema properties should have an example.
+    message: Property should have an example.
+    severity: warn
+    resolved: false
+    given: $..properties[?(@object() && @.$ref == undefined)]
+    then:
+      field: example
+      function: defined
+
   oas3-api-servers: error
