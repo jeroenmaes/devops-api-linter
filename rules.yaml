@@ -1,5 +1,12 @@
-extends: spectral:oas
-rules:
+extends: [[spectral:oas, all]]
+rules:  
+  info-license: off
+  license-url: off
+  openapi-tags-alphabetical: off
+  operation-singular-tag: off
+  tag-description: off
+  oas3-parameter-description: off
+
   rule-important-info-fields:
     description: Absolutely must have the info information
     message: "Missing the {{property}}"
@@ -21,10 +28,11 @@ rules:
       field: description
       function: truthy
  
-  rule-camel-case-operation-id:
+  rule-pascal-case-operation-id:
     description: OperationId should be pascalCased.
     type: style
     given: $.paths.[*][get,post,put,delete,options]
+    severity: info
     then:
       field: operationId
       function: casing
@@ -36,7 +44,7 @@ rules:
     message: "The value '{{value}}' should be camel cased."
     type: style
     given: $.paths.[*][get,post,put,delete,options].parameters[*]
-    severity: error
+    severity: info
     resolved: false
     then:
       field: name
@@ -69,7 +77,7 @@ rules:
     description: Resource identifier in path should be represented as 'xxxId', eg CustomerId.
     type: style
     given: "$.paths[*]~"
-    severity: error
+    severity: info
     then:
       function: pattern
       functionOptions:
@@ -131,7 +139,7 @@ rules:
         match: "/^[a-z$_]{1}[A-Z09$_]*/"
 
   rule-request-GET-no-body:
-    description: "A 'GET' request MUST NOT accept a 'body` parameter"
+    description: "A 'GET' request MUST NOT accept a 'body' parameter"
     severity: error
     given: $.paths..get.parameters..in
     then:
@@ -193,7 +201,7 @@ rules:
   rule-common-responses-too-many-requests:
     description: Responses should contain common response - 429 (too many requests)
     message: '{{description}}. Missing {{property}}'
-    severity: error
+    severity: info
     given: $.paths..responses
     then:
       field: '429'
@@ -208,15 +216,15 @@ rules:
       field: '500'
       function: truthy
 
-  rule-property-description:
-    description: All schema properties should have a description.
-    message: Property should have a description.
-    severity: warn
-    resolved: false
-    given: $..properties[?(@object() && @.$ref == undefined)]
-    then:
-      field: description
-      function: defined
+  #rule-property-description:
+   # description: All schema properties should have a description.
+   # message: Property should have a description.
+   # severity: info
+   # resolved: false
+   # given: $..properties[?(@object() && @.$ref == undefined)]
+   # then:
+   #   field: description
+   #   function: defined
 
   rule-property-type:
     description: All schema properties should have a defined type.
@@ -240,3 +248,4 @@ rules:
       function: defined
 
   oas3-api-servers: error
+  contact-properties: error
